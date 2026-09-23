@@ -1,0 +1,14 @@
+/ctest/c/vendor/
+/ctest/c/build/
+/testdata/corpus/
+*.pcm
+*.raw
+
+# Stray binaries from `go build ./...`
+/tools/blobgen/blobgen
+/tools/avogen/avogen
+
+# Test binaries left behind by -cpuprofile / -c
+*.test
+/cpu.out
+/mem.out

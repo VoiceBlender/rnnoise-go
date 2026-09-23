@@ -1,0 +1,18 @@
+Trained weights for RNNoise
+===========================
+
+model/weights.bin is a repacking of the weights upstream distributes separately
+from its source tree. It is not modified numerically: only the container format
+changes (upstream's machine-endian DNNw blob becomes an explicitly
+little-endian one).
+
+  Source:  https://media.xiph.org/rnnoise/models/rnnoise_data-<sha>.tar.gz
+           where <sha> is the content of MODEL_VERSION at the repository root,
+           and is also the tarball's own sha256. Upstream's autogen.sh fetches
+           the same file via download_model.sh.
+  Pinned:  0a8755f8e2d834eff6a54714ecc7d75f9932e845df35f8b59bc52a7cfe6e8b37
+  Derived: src/rnnoise_data.c from that tarball, via tools/blobgen.
+  Licence: as COPYING.rnnoise (BSD 3-clause, Xiph.Org / Mozilla / Amazon).
+
+Run `make verify-model` to check the committed blob against model/weights.sha256,
+or `make model` to regenerate it from the pinned tarball.

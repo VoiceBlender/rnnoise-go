@@ -1,0 +1,32 @@
+{
+  "comment": "Per-stage sha256 digests of the C reference's own output over makeTestPCM(600), used by TestGoldenStages so bit-exactness stays under guard without a C toolchain. Regenerate with `make golden`.",
+  "upstream_commit": "70f1d256acd4b34a572f999a05c87bf00b67730d",
+  "c_variant": "scalar (-U__SSE2__ -U__SSE__ -U__AVX__), signed activations with bias",
+  "sample_rate": 48000,
+  "frames": 600,
+  "quantisation": "signed",
+  "stage_sha256": {
+    "Ep": "c84e2c115d4c951c47b5c3331bb1f62388a5d38d1a122d661cc3499561a0e0e7",
+    "Ex": "0a390430752b2fd81d3cbc37de63bbb0f7a22b97ad71e9a1ddf46be8cce4bfd3",
+    "Exp": "c88990c28c8ade06cf8f33adc01ca0a1fd3ae000665897b673ae6343f57f1538",
+    "P.im": "b55a7f97acb3b9608512bfed3ce23955de04cdd21e3443c5e8037730f2d18913",
+    "P.re": "0b9226f653d06482a62bc894c7f18b582650a20d2299919b6c99286c25b33335",
+    "X.im": "f1ec4b89e3f7ffec6929550e9111b28f76f0193063879d23a65596287b557e9e",
+    "X.re": "5e136cc42857804d5083740fbef939de84f83717c328c838ed89e38eba8a3b9e",
+    "conv1_out": "11e744ed50e6173e7a91641151110a122ab659964e21fab347d51d170638e548",
+    "conv2_out": "c340423139af20b2899343ac3af110018c82a2319ae040dca97c68eab603f0a4",
+    "features": "4d6ca0f1f879835b570a5d6aee745eb943d11477a529db2b219cf24fc53692b6",
+    "g_final": "bbc20f71a49e309dcfca3f6742d7ba69ca875a464b3757d028ab9613241e3a86",
+    "g_raw": "93acb0dffc657c1e8d0bd3ef0003e3b5254ac8c4e380746a7b9b3817ad662928",
+    "gf": "537ba14d558c8b9ff43c0a8eefb40708d775329a2a4fbb6daf30129239ba0979",
+    "gru1_state": "36739034bcd4c3c2f99089123d83345cf7e98c552da5d902b5d3906cf6909950",
+    "gru2_state": "23583cf5c85c4fcfda9b6e4cd2d092e4670d75cbdb1a3e5abd17c0fa9f74bc32",
+    "gru3_state": "05a68c3eb362b200d6f3462a5ee06e80fd99830535a5ff174b0ab7d03312f780",
+    "hp": "82262163e9659f00c13e9b5718e9935051b2c0f5c6629a9523932525c966a32c",
+    "out": "3c8e3ca5b08e6cada6d3ea20a5a2bc4e70a645218a89ed119b86ea749333ab99",
+    "pitch_gain": "cd99401a8d488437e488544063ddffb5b2d084b9cd99ac1739b7b28394fd16b5",
+    "pitch_index": "ec436d3f9fcb8fe970568bd6c50a46c65b85b5ed73cd12efebbab3cf5a5fbcc8",
+    "silence": "3aed09aa1ad26098284eb3b5667d6b3154c8eaccf453850b882e9500b262129a",
+    "vad": "73e7d152e9e1c32c7d230625f396f6977c6049e94e36b58660bf370f7a6ba69e"
+  }
+}

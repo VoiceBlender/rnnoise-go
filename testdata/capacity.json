@@ -1,0 +1,64 @@
+{
+  "comment": "Concurrent-stream capacity per sample rate. Plan against sessions_per_cpu, which is measured with every hardware thread busy; single_xrt is a single-thread figure that rides the turbo clock and overstates a loaded server by more than 2x. Signal is synthetic voiced speech that never trips the silence gate, so these are a worst case. Regenerate with `make update-capacity`.",
+  "cpu": "AMD Ryzen 9 7900 12-Core Processor",
+  "hw_threads": 24,
+  "go_version": "go1.26.3",
+  "rows": [
+    {
+      "rate": 8000,
+      "single_us_per_frame": 58.842790599999994,
+      "single_xrt": 169.94435338693813,
+      "saturated_frames_per_sec": 163700,
+      "sessions_per_cpu": 1637,
+      "sessions_per_hw_thread": 68.20833333333333
+    },
+    {
+      "rate": 12000,
+      "single_us_per_frame": 62.724370249999986,
+      "single_xrt": 159.42766679271685,
+      "saturated_frames_per_sec": 161100,
+      "sessions_per_cpu": 1611,
+      "sessions_per_hw_thread": 67.125
+    },
+    {
+      "rate": 16000,
+      "single_us_per_frame": 67.27153355,
+      "single_xrt": 148.6512863954177,
+      "saturated_frames_per_sec": 154700,
+      "sessions_per_cpu": 1547,
+      "sessions_per_hw_thread": 64.45833333333333
+    },
+    {
+      "rate": 24000,
+      "single_us_per_frame": 77.45172185,
+      "single_xrt": 129.11268802218373,
+      "saturated_frames_per_sec": 138000,
+      "sessions_per_cpu": 1380,
+      "sessions_per_hw_thread": 57.5
+    },
+    {
+      "rate": 32000,
+      "single_us_per_frame": 86.59515664999999,
+      "single_xrt": 115.47989964863702,
+      "saturated_frames_per_sec": 122700,
+      "sessions_per_cpu": 1227,
+      "sessions_per_hw_thread": 51.125
+    },
+    {
+      "rate": 44100,
+      "single_us_per_frame": 105.66236335,
+      "single_xrt": 94.64107826999499,
+      "saturated_frames_per_sec": 104400,
+      "sessions_per_cpu": 1044,
+      "sessions_per_hw_thread": 43.5
+    },
+    {
+      "rate": 48000,
+      "single_us_per_frame": 108.40351299999999,
+      "single_xrt": 92.24793296136077,
+      "saturated_frames_per_sec": 102200,
+      "sessions_per_cpu": 1022,
+      "sessions_per_hw_thread": 42.583333333333336
+    }
+  ]
+}

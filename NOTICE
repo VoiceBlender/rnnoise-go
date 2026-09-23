@@ -1,0 +1,21 @@
+rnnoise-go
+==========
+
+A pure-Go port of RNNoise (https://gitlab.xiph.org/xiph/rnnoise, mirrored at
+https://github.com/xiph/rnnoise), ported from upstream commit 70f1d256.
+
+The algorithm, the neural network topology and the trained weights are the work
+of Jean-Marc Valin and contributors. Portions derive from Opus/CELT (KISS FFT,
+the pitch analysis and the LPC helpers), originally by Mark Borgerding,
+Jean-Marc Valin and the Xiph.Org Foundation.
+
+  Copyright (c) 2017-2018 Mozilla
+  Copyright (c) 2023-2025 Amazon
+  Copyright (c) 2007-2008 CSIRO
+  Copyright (c) 2007-2011 Xiph.Org Foundation
+  Copyright (c) 2003-2004 Mark Borgerding
+
+This port is distributed under the same terms as upstream, BSD-3-Clause; see
+LICENSE. Upstream's notice is reproduced verbatim in COPYING.rnnoise. The
+trained weights are redistributed under those same terms; their provenance is
+recorded in model/LICENSE.weights.
