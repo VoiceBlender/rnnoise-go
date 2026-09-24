@@ -58,7 +58,7 @@ func celtLPC(lpc []float32, ac []float32, p int) {
 // ported.
 func celtAutocorr(x []float32, ac []float32, lag, n int) {
 	fastN := n - lag
-	pitchXCorr(x, x, ac, fastN, lag+1)
+	pitchXCorr(x, x, ac, fastN, lag+1, false)
 	for k := 0; k <= lag; k++ {
 		var d float32
 		for i := k + fastN; i < n; i++ {

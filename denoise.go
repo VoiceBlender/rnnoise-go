@@ -15,6 +15,12 @@ type Denoiser struct {
 	model *Model
 	quant QuantMode
 
+	// Gain shaping, applied to the band gains just before they are
+	// expanded to bins. shapeGains is false for upstream's behaviour.
+	shapeGains bool
+	aggr       float32
+	gainFloor  float32
+
 	tr    *transform
 	pitch *pitchState
 	rnn   *rnnState

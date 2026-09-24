@@ -35,6 +35,7 @@ package rnnoise
 import (
 	"errors"
 	"fmt"
+	"math"
 )
 
 // DefaultSampleRate is the rate upstream's constants are defined at, and the
@@ -62,6 +63,23 @@ type Options struct {
 	// WebAssembly builds. QuantUnsigned reproduces a stock x86 build's
 	// arithmetic and exists mainly for the differential harness.
 	Quantization QuantMode
+
+	// GainFloorDB limits how far a band may be attenuated, in dB. Zero, the
+	// default, imposes no limit and matches upstream; -20 caps attenuation at
+	// 20 dB. Raising the floor trades residual noise for fewer dropouts on
+	// quiet speech and less musical noise. Must not be positive.
+	GainFloorDB float64
+
+	// Aggressiveness raises each band gain to this power. Zero and one both
+	// mean upstream's behaviour; below one suppresses less, above one more.
+	// Must not be negative. The floor, if any, is applied afterwards.
+	Aggressiveness float64
+
+	// Fast selects kernels that are faster but not bit-exact against the C
+	// scalar build. Output differs in the last bits; measured quality does
+	// not. The default, false, keeps every kernel exact, which is what the
+	// differential harness and TestGoldenStages need.
+	Fast bool
 }
 
 // New creates a Denoiser. The returned Denoiser performs no further allocation,
@@ -79,9 +97,24 @@ func New(o Options) (*Denoiser, error) {
 	if err != nil {
 		return nil, err
 	}
+	if o.GainFloorDB > 0 {
+		return nil, fmt.Errorf("rnnoise: GainFloorDB %g is positive, which would amplify", o.GainFloorDB)
+	}
+	if o.Aggressiveness < 0 {
+		return nil, fmt.Errorf("rnnoise: Aggressiveness %g is negative", o.Aggressiveness)
+	}
 	d := newDenoiser(c)
 	d.model = o.Model
 	d.quant = o.Quantization
+	d.aggr = 1
+	if o.Aggressiveness != 0 {
+		d.aggr = float32(o.Aggressiveness)
+	}
+	if o.GainFloorDB != 0 {
+		d.gainFloor = float32(math.Pow(10, o.GainFloorDB/20))
+	}
+	d.shapeGains = d.aggr != 1 || d.gainFloor != 0
+	d.pitch.fast = o.Fast
 	return d, nil
 }
 
@@ -183,6 +216,21 @@ func (d *Denoiser) ProcessInt16(out, in []int16) (float32, error) {
 	return vad, nil
 }
 
+// shape applies the aggressiveness exponent and the gain floor. It runs after
+// lastg is updated, so the decay cap and the recurrent state still follow
+// upstream's trajectory and only the applied gains differ.
+func (d *Denoiser) shape(g []float32) {
+	for i, v := range g {
+		if d.aggr != 1 {
+			v = float32(math.Pow(float64(v), float64(d.aggr)))
+		}
+		if v < d.gainFloor {
+			v = d.gainFloor
+		}
+		g[i] = v
+	}
+}
+
 // processFrame is upstream's rnnoise_process_frame.
 func (d *Denoiser) processFrame(out, in []float32) float32 {
 	c := d.c
@@ -210,6 +258,9 @@ func (d *Denoiser) processFrame(out, in []float32) float32 {
 			// instance on transient noise.
 			d.lastg[i] = float32(fmin(1,
 				float64(d.g[i])*(float64(d.delayedEx[i])+1e-3)/(float64(d.Ex[i])+1e-3)))
+		}
+		if d.shapeGains {
+			d.shape(d.g)
 		}
 		c.interpBandGain(d.gf, d.g)
 		for i := 0; i < c.freq; i++ {

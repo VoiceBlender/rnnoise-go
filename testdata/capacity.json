@@ -6,59 +6,59 @@
   "rows": [
     {
       "rate": 8000,
-      "single_us_per_frame": 58.842790599999994,
-      "single_xrt": 169.94435338693813,
-      "saturated_frames_per_sec": 163700,
-      "sessions_per_cpu": 1637,
-      "sessions_per_hw_thread": 68.20833333333333
+      "single_us_per_frame": 55.861034249999996,
+      "single_xrt": 179.0156615297541,
+      "saturated_frames_per_sec": 173700,
+      "sessions_per_cpu": 1737,
+      "sessions_per_hw_thread": 72.375
     },
     {
       "rate": 12000,
-      "single_us_per_frame": 62.724370249999986,
-      "single_xrt": 159.42766679271685,
-      "saturated_frames_per_sec": 161100,
-      "sessions_per_cpu": 1611,
-      "sessions_per_hw_thread": 67.125
+      "single_us_per_frame": 60.48342205,
+      "single_xrt": 165.3345604640768,
+      "saturated_frames_per_sec": 163400,
+      "sessions_per_cpu": 1634,
+      "sessions_per_hw_thread": 68.08333333333333
     },
     {
       "rate": 16000,
-      "single_us_per_frame": 67.27153355,
-      "single_xrt": 148.6512863954177,
-      "saturated_frames_per_sec": 154700,
-      "sessions_per_cpu": 1547,
-      "sessions_per_hw_thread": 64.45833333333333
+      "single_us_per_frame": 65.09212735,
+      "single_xrt": 153.62840956526213,
+      "saturated_frames_per_sec": 153600,
+      "sessions_per_cpu": 1536,
+      "sessions_per_hw_thread": 64
     },
     {
       "rate": 24000,
-      "single_us_per_frame": 77.45172185,
-      "single_xrt": 129.11268802218373,
-      "saturated_frames_per_sec": 138000,
-      "sessions_per_cpu": 1380,
-      "sessions_per_hw_thread": 57.5
+      "single_us_per_frame": 73.51499985000001,
+      "single_xrt": 136.026661503149,
+      "saturated_frames_per_sec": 139000,
+      "sessions_per_cpu": 1390,
+      "sessions_per_hw_thread": 57.916666666666664
     },
     {
       "rate": 32000,
-      "single_us_per_frame": 86.59515664999999,
-      "single_xrt": 115.47989964863702,
-      "saturated_frames_per_sec": 122700,
-      "sessions_per_cpu": 1227,
-      "sessions_per_hw_thread": 51.125
+      "single_us_per_frame": 84.30540765,
+      "single_xrt": 118.6163530756618,
+      "saturated_frames_per_sec": 125000,
+      "sessions_per_cpu": 1250,
+      "sessions_per_hw_thread": 52.083333333333336
     },
     {
       "rate": 44100,
-      "single_us_per_frame": 105.66236335,
-      "single_xrt": 94.64107826999499,
-      "saturated_frames_per_sec": 104400,
-      "sessions_per_cpu": 1044,
-      "sessions_per_hw_thread": 43.5
+      "single_us_per_frame": 101.8463508,
+      "single_xrt": 98.18712130037359,
+      "saturated_frames_per_sec": 104600,
+      "sessions_per_cpu": 1046,
+      "sessions_per_hw_thread": 43.583333333333336
     },
     {
       "rate": 48000,
-      "single_us_per_frame": 108.40351299999999,
-      "single_xrt": 92.24793296136077,
-      "saturated_frames_per_sec": 102200,
-      "sessions_per_cpu": 1022,
-      "sessions_per_hw_thread": 42.583333333333336
+      "single_us_per_frame": 105.77544535000001,
+      "single_xrt": 94.53989975566668,
+      "saturated_frames_per_sec": 102500,
+      "sessions_per_cpu": 1025,
+      "sessions_per_hw_thread": 42.708333333333336
     }
   ]
 }

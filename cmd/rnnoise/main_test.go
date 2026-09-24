@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	rnnoise "github.com/VoiceBlender/rnnoise-go"
 	"github.com/VoiceBlender/rnnoise-go/model"
 )
 
@@ -58,7 +59,7 @@ func TestDenoise(t *testing.T) {
 		in := append([]int16(nil), w.samples...)
 		want := len(in)
 
-		st, err := denoise(w, m)
+		st, err := denoise(w, rnnoise.Options{Model: m})
 		if err != nil {
 			t.Fatalf("%d Hz: %v", tc.rate, err)
 		}
@@ -97,7 +98,7 @@ func TestDenoiseAlignment(t *testing.T) {
 	}
 	const rate = 16000
 	w := tone(rate, 1)
-	if _, err := denoise(w, m); err != nil {
+	if _, err := denoise(w, rnnoise.Options{Model: m}); err != nil {
 		t.Fatal(err)
 	}
 

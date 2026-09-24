@@ -27,6 +27,8 @@ func main() {
 	log.SetPrefix("rnnoise: ")
 
 	modelPath := flag.String("model", "", "read weights from this file instead of the embedded ones")
+	floorDB := flag.Float64("floor", 0, "limit attenuation to this many dB, e.g. -20; 0 means no limit")
+	aggr := flag.Float64("aggressiveness", 1, "scale suppression; below 1 is gentler, above 1 harsher")
 	quiet := flag.Bool("q", false, "suppress the summary")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: rnnoise [flags] input.wav output.wav\n\n"+
@@ -39,13 +41,14 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if err := run(flag.Arg(0), flag.Arg(1), *modelPath, *quiet); err != nil {
+	opts := rnnoise.Options{GainFloorDB: *floorDB, Aggressiveness: *aggr}
+	if err := run(flag.Arg(0), flag.Arg(1), *modelPath, *quiet, opts); err != nil {
 		// The library prefixes its own errors, and so does the logger.
 		log.Fatal(strings.TrimPrefix(err.Error(), "rnnoise: "))
 	}
 }
 
-func run(inPath, outPath, modelPath string, quiet bool) error {
+func run(inPath, outPath, modelPath string, quiet bool, opts rnnoise.Options) error {
 	w, err := readWAV(inPath)
 	if err != nil {
 		return err
@@ -54,13 +57,13 @@ func run(inPath, outPath, modelPath string, quiet bool) error {
 		return fmt.Errorf("%s: no audio samples", inPath)
 	}
 
-	m, err := loadModel(modelPath)
+	opts.Model, err = loadModel(modelPath)
 	if err != nil {
 		return err
 	}
 
 	start := time.Now()
-	stats, err := denoise(w, m)
+	stats, err := denoise(w, opts)
 	if err != nil {
 		return err
 	}
@@ -99,8 +102,9 @@ type stats struct {
 // channel. Output sample i corresponds to input sample i-Delay(), so each
 // channel is run for Delay() samples past the end of the input and the first
 // Delay() output samples are discarded, which realigns the two.
-func denoise(w *wavFile, m *rnnoise.Model) (stats, error) {
-	d, err := rnnoise.New(rnnoise.Options{SampleRate: w.rate, Model: m})
+func denoise(w *wavFile, o rnnoise.Options) (stats, error) {
+	o.SampleRate = w.rate
+	d, err := rnnoise.New(o)
 	if err != nil {
 		return stats{}, err
 	}

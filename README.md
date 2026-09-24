@@ -36,6 +36,19 @@ Frames are 10 ms; `FrameSize()` gives the sample count for the configured rate.
 Samples are int16-scaled (about ±32768), not ±1.0, since the silence gate and
 several feature offsets are calibrated against that absolute magnitude.
 
+`Options.Fast` selects a vectorised pitch correlation that is not bit-exact
+against the C reference. It is worth about 8% at 48 kHz and under 1% at 16 kHz,
+where the pitch buffer is shorter. The correlation feeds only the period search,
+so in testing the output is unchanged; `TestFastModeQuality` bounds the
+divergence.
+
+`Options.GainFloorDB` limits how far a band may be attenuated, and
+`Options.Aggressiveness` raises each band gain to that power. The defaults, 0
+and 1, reproduce upstream exactly. Measured on white noise at 16 kHz: the
+default attenuates 54.6 dB, `GainFloorDB: -20` holds it to 20.4 dB, and
+`Aggressiveness: 0.5` and `3` give 38.0 dB and 94.3 dB. The floor is applied
+last, so it bounds whatever the exponent asks for.
+
 Allocation-free after construction. A `Model` is read-only and backs any number
 of Denoisers concurrently; each stream needs its own `Denoiser`.
 
@@ -48,8 +61,8 @@ rnnoise noisy.wav clean.wav
 
 Takes 16-bit PCM WAV at any rate from 8 kHz up, denoises each channel
 independently, and compensates the 20 ms delay so the output is the same length
-as the input and aligned with it. `-model` reads weights from a file instead of
-the embedded ones; `-q` suppresses the summary.
+as the input and aligned with it. `-floor` and `-aggressiveness` expose the two
+options above; `-model` reads weights from a file; `-q` suppresses the summary.
 
 ## Sample rates
 
@@ -73,11 +86,11 @@ hardware thread busy.
 
 | rate | µs/frame | ×RT | sessions/CPU |
 |---|---|---|---|
-| 8 kHz | 58.8 | 170 | 1637 |
-| 16 kHz | 67.3 | 149 | 1547 |
-| 32 kHz | 86.6 | 116 | 1227 |
-| 44.1 kHz | 105.7 | 95 | 1044 |
-| 48 kHz | 108.4 | 92 | 1022 |
+| 8 kHz | 55.9 | 179 | 1737 |
+| 16 kHz | 65.1 | 154 | 1536 |
+| 32 kHz | 84.3 | 119 | 1250 |
+| 44.1 kHz | 101.8 | 98 | 1046 |
+| 48 kHz | 105.8 | 95 | 1025 |
 | C with AVX2, 48 kHz | 65.2 | 153 | 1440 to 1522 |
 
 At 16 kHz the port is 1.6× cheaper than native C, since a 48 kHz-only denoiser

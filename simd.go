@@ -43,6 +43,17 @@ package rnnoise
 // output i they still accumulate over j in ascending order -- so one
 // implementation reproduces all three bit for bit.
 func sgemvGeneric(out, weights []float32, rows, cols, colStride int, x []float32) {
+	// vad_dense has one output row, and the general loop below would rebuild a
+	// slice header per column for a single multiply-add. Same accumulation
+	// order over j, so this stays bit-identical.
+	if rows == 1 {
+		var acc float32
+		for j := 0; j < cols; j++ {
+			acc += weights[j*colStride] * x[j]
+		}
+		out[0] = acc
+		return
+	}
 	for i := 0; i < rows; i++ {
 		out[i] = 0
 	}

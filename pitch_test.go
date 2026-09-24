@@ -42,7 +42,7 @@ func TestPitchXCorrMatchesNaive(t *testing.T) {
 		}
 		got := make([]float32, tc.maxPitch)
 		want := make([]float32, tc.maxPitch)
-		pitchXCorr(x, y, got, tc.length, tc.maxPitch)
+		pitchXCorr(x, y, got, tc.length, tc.maxPitch, false)
 		naiveXCorr(x, y, want, tc.length, tc.maxPitch)
 		for i := range want {
 			if d := math.Abs(float64(got[i] - want[i])); d > 1e-3*math.Abs(float64(want[i]))+1e-4 {

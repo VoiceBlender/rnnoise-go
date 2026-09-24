@@ -16,6 +16,9 @@ import "math"
 
 // pitchState holds the scratch buffers the pitch search needs.
 type pitchState struct {
+	// fast selects the vectorised, non-bit-exact correlation.
+	fast bool
+
 	c *rateConfig
 
 	lp    []float32 // half-rate signal, pitchBuf/2
@@ -117,6 +120,29 @@ func xcorrKernel(x, y []float32, sum *[4]float32, length int) {
 	}
 }
 
+// xcorrKernelFast is xcorrKernel with each lag's sum split across vector lanes
+// and fused multiply-add. Not bit-exact against the C scalar build; selected by
+// Options.Fast.
+func xcorrKernelFast(x, y []float32, sum *[4]float32, length int) {
+	var acc [32]float32
+	n := xcorrVec(x, y, &acc, length)
+	if n == 0 {
+		xcorrKernel(x, y, sum, length)
+		return
+	}
+	for k := 0; k < 4; k++ {
+		a := acc[k*8 : k*8+8 : k*8+8]
+		sum[k] += ((a[0] + a[1]) + (a[2] + a[3])) + ((a[4] + a[5]) + (a[6] + a[7]))
+	}
+	for j := n; j < length; j++ {
+		xj := x[j]
+		sum[0] += xj * y[j]
+		sum[1] += xj * y[j+1]
+		sum[2] += xj * y[j+2]
+		sum[3] += xj * y[j+3]
+	}
+}
+
 // innerProd is celt_inner_prod.
 func innerProd(x, y []float32, n int) float32 {
 	var xy float32
@@ -140,11 +166,15 @@ func dualInnerProd(x, y01, y02 []float32, n int) (float32, float32) {
 // non-unrolled tail for a maxPitch that is not a multiple of 4. That tail
 // matters at reduced rates, where maxPitch-3*minPitch need not be divisible
 // by 4.
-func pitchXCorr(x, y []float32, xcorr []float32, length, maxPitch int) {
+func pitchXCorr(x, y []float32, xcorr []float32, length, maxPitch int, fast bool) {
 	i := 0
 	for ; i < maxPitch-3; i += 4 {
 		sum := [4]float32{}
-		xcorrKernel(x, y[i:], &sum, length)
+		if fast {
+			xcorrKernelFast(x, y[i:], &sum, length)
+		} else {
+			xcorrKernel(x, y[i:], &sum, length)
+		}
 		xcorr[i] = sum[0]
 		xcorr[i+1] = sum[1]
 		xcorr[i+2] = sum[2]
@@ -258,7 +288,7 @@ func (p *pitchState) search(xLP, y []float32, length, maxPitch int) int {
 	}
 
 	// Coarse search with 4x decimation.
-	pitchXCorr(p.xLP4, p.yLP4, p.xcorr, length>>2, maxPitch>>2)
+	pitchXCorr(p.xLP4, p.yLP4, p.xcorr, length>>2, maxPitch>>2, p.fast)
 	findBestPitch(p.xcorr, p.yLP4, length>>2, maxPitch>>2, &bestPitch)
 
 	// Finer search with 2x decimation.
