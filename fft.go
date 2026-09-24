@@ -47,6 +47,12 @@ type fftState struct {
 	factors  [2 * maxFactors]int
 	bitrev   []int32
 	twiddles []cpx
+
+	// The radix-5 stage reads twiddles at strides of 1, 2, 3 and 4. Those
+	// indices depend only on the transform, so the vector kernel gets them
+	// gathered once into dense arrays. Same values, same arithmetic.
+	b5fstride, b5m int
+	b5tw           [4][]cpx
 }
 
 // maxGenericRadix bounds the stack-resident scratch in kfBflyGeneric, and with
@@ -152,7 +158,29 @@ func newFFTState(nfft int) (*fftState, bool) {
 	}
 	st.bitrev = make([]int32, nfft)
 	computeBitrevTable(0, st.bitrev, 0, 1, 1, st.factors[:])
+	st.initBfly5Twiddles()
 	return st, true
+}
+
+// initBfly5Twiddles walks the stage list the way kfWork does and flattens the
+// radix-5 stage's four strided twiddle reads into dense arrays.
+func (st *fftState) initBfly5Twiddles() {
+	fstride := 1
+	for i := 0; i < maxFactors && st.factors[2*i] != 0; i++ {
+		p, m := st.factors[2*i], st.factors[2*i+1]
+		if p == 5 {
+			st.b5fstride, st.b5m = fstride, m
+			for k := range st.b5tw {
+				a := make([]cpx, m)
+				for u := range a {
+					a[u] = st.twiddles[(k+1)*u*fstride]
+				}
+				st.b5tw[k] = a
+			}
+			return
+		}
+		fstride *= p
+	}
 }
 
 func kfBfly2(fout []cpx, m, n int) {
@@ -309,7 +337,17 @@ func kfBfly5(fout []cpx, fstride int, st *fftState, m, n, mm int) {
 		f3 := f0 + 3*m
 		f4 := f0 + 4*m
 
-		for u := 0; u < m; u++ {
+		u := 0
+		if fstride == st.b5fstride && m == st.b5m && st.b5tw[0] != nil {
+			y := [4]float32{ya.r, ya.i, yb.r, yb.i}
+			if blocks := m / 4; blocks > 0 && bfly5Vec(
+				fout[f0:], fout[f1:], fout[f2:], fout[f3:], fout[f4:],
+				st.b5tw[0], st.b5tw[1], st.b5tw[2], st.b5tw[3], &y, blocks) {
+				done := blocks * 4
+				u, f0, f1, f2, f3, f4 = done, f0+done, f1+done, f2+done, f3+done, f4+done
+			}
+		}
+		for ; u < m; u++ {
 			scratch[0] = fout[f0]
 
 			scratch[1] = cmul(fout[f1], tw[u*fstride])

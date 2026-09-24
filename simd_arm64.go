@@ -101,3 +101,8 @@ func sparseCgemvInt8(out []float32, w []int8, idx []int32, scale []float32, rows
 func vecTanh(y, x []float32) { vecTanhGeneric(y, x) }
 
 func vecSigmoid(y, x []float32) { vecSigmoidGeneric(y, x) }
+
+// No vectorised radix-5 butterfly here; the caller runs the scalar loop.
+func bfly5Vec(f0, f1, f2, f3, f4, t1, t2, t3, t4 []cpx, y *[4]float32, blocks int) bool {
+	return false
+}

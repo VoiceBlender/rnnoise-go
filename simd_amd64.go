@@ -113,3 +113,22 @@ func vecSigmoid(y, x []float32) {
 	}
 	vecSigmoidGeneric(y, x)
 }
+
+//go:noescape
+func kfBfly5AVX2(f0, f1, f2, f3, f4, t1, t2, t3, t4 []cpx, y *[4]float32, blocks int)
+
+// bfly5Vec runs the radix-5 butterfly over blocks*4 values of u, reporting
+// whether it did. It is bit-identical to the scalar loop.
+func bfly5Vec(f0, f1, f2, f3, f4, t1, t2, t3, t4 []cpx, y *[4]float32, blocks int) bool {
+	if !useAVX2 {
+		return false
+	}
+	n := blocks * 4
+	for _, s := range [][]cpx{f0, f1, f2, f3, f4, t1, t2, t3, t4} {
+		if len(s) < n {
+			return false
+		}
+	}
+	kfBfly5AVX2(f0, f1, f2, f3, f4, t1, t2, t3, t4, y, blocks)
+	return true
+}

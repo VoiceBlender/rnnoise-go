@@ -43,24 +43,27 @@ between independent runs, C to within about 6%.
 
 | rate | µs/frame | ×RT = sessions/core | sessions/CPU (saturated) | sessions/thread |
 |---|---|---|---|---|
-| 8000 | 55.9 | 179 | 1737 | 72.4 |
-| 12000 | 60.5 | 165 | 1634 | 68.1 |
-| 16000 | 65.1 | 154 | 1536 | 64.0 |
-| 24000 | 73.5 | 136 | 1390 | 57.9 |
-| 32000 | 84.3 | 119 | 1250 | 52.1 |
-| 44100 | 101.8 | 98 | 1046 | 43.6 |
-| 48000 | 105.8 | 95 | 1025 | 42.7 |
+| 8000 | 55.4 | 181 | 1712 | 71.3 |
+| 12000 | 59.9 | 167 | 1634 | 68.1 |
+| 16000 | 63.7 | 157 | 1484 | 61.8 |
+| 24000 | 72.7 | 138 | 1343 | 56.0 |
+| 32000 | 81.6 | 122 | 1228 | 51.2 |
+| 44100 | 104.3 | 96 | 961 | 40.0 |
+| 48000 | 102.4 | 98 | 1061 | 44.2 |
 
 Cost falls with the rate because the DSP front end shrinks with the frame while
 the network's cost is fixed: the network is roughly 60% of a frame at 48 kHz and
 most of the rest at 8 kHz.
+
+44.1 kHz is the exception to that trend, and to the radix-5 speedup below: its
+882-point window factors as 2*3^2*7^2, with no radix-5 stage to vectorise.
 
 ## Against the C original, 48 kHz
 
 | | µs/frame | ×RT | sessions/CPU (saturated) |
 |---|---|---|---|
 | C, AVX2 | 65.2 | 153 | 1440 to 1522 |
-| Go | 105.8 | 95 | 1025 |
+| Go | 102.4 | 98 | 1061 |
 | C, scalar | 767.6 | 13 | |
 
 Go is about 1.4× behind C at 48 kHz on sessions per CPU, 1.6× on single-thread
@@ -86,7 +89,7 @@ At 16 kHz per frame, taking quality 5:
 
 | | µs/frame | sessions/core |
 |---|---|---|
-| Go, native 16 kHz | 65.1 | 154 |
+| Go, native 16 kHz | 63.7 | 157 |
 | C plus resampling | 105.1 | 95 |
 
 Native rate-scaling makes the port 1.6× cheaper than C at 16 kHz, because a
@@ -102,6 +105,12 @@ Against the portable Go each kernel replaces, and bit-identical to it:
 |---|---|---|---|
 | int8 matrix-vector, one GRU gate matrix | 256 µs | 5.7 µs | 45×, 78 GB/s |
 | float matrix-vector, output layer | 21.6 µs | 1.2 µs | 18× |
+
+The radix-5 butterfly is also vectorised, worth 5.6% of a 48 kHz frame. It is
+bit-identical: the complex multiply keeps upstream's separate multiplies with no
+fusion, and the one place where two lanes subtract in opposite orders blends
+rather than negates, because a-b and -(b-a) differ in sign bit when both are
+zero, which silence produces.
 
 That 78 GB/s is not a bandwidth ceiling. Sharing one weight matrix across
 threads, as production shares one read-only model, the kernel reaches 767 GB/s

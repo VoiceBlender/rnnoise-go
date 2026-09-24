@@ -3,6 +3,8 @@
 /testdata/corpus/
 *.pcm
 *.raw
+*.wav
+
 
 # Stray binaries from `go build ./...`
 /tools/blobgen/blobgen

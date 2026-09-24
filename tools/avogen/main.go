@@ -29,6 +29,7 @@ func main() {
 	Package("github.com/VoiceBlender/rnnoise-go")
 	ConstraintExpr("amd64")
 	genCgemvInt8AVX2()
+	genKfBfly5AVX2()
 	Generate()
 }
 
@@ -179,3 +180,161 @@ func genCgemvInt8AVX2() {
 
 // keep the reg import used even if a future edit drops an explicit register.
 var _ = reg.RAX
+
+// cmulAVX2 is cmul on four interleaved complex values at once.
+//
+// It computes exactly a.r*b.r - a.i*b.i and a.r*b.i + a.i*b.r, with separate
+// multiplies and no fused multiply-add, so it is bit-identical to cmul. Float
+// addition is commutative, so the imaginary lane's operand order is immaterial.
+func cmulAVX2(a, b reg.VecVirtual) reg.VecVirtual {
+	br, bi, as := YMM(), YMM(), YMM()
+	VMOVSLDUP(b, br) // [b.r b.r ...]
+	VMOVSHDUP(b, bi) // [b.i b.i ...]
+	VPERMILPS(operand.U8(0xB1), a, as)
+	p, q, out := YMM(), YMM(), YMM()
+	VMULPS(br, a, p)  // [a.r*b.r  a.i*b.r]
+	VMULPS(bi, as, q) // [a.i*b.i  a.r*b.i]
+	VADDSUBPS(q, p, out)
+	return out
+}
+
+func genKfBfly5AVX2() {
+	// Declared here rather than in an init: DATA applies to the most recently
+	// declared GLOBL, so two package-level globals would interleave.
+	//
+	// signOdd flips the sign of the imaginary lanes, for the places where the
+	// scalar code negates a whole expression.
+	signOdd := GLOBL("bfly5SignOdd", attr.RODATA|attr.NOPTR)
+	for i := 0; i < 8; i++ {
+		v := uint32(0)
+		if i%2 == 1 {
+			v = 0x80000000
+		}
+		DATA(4*i, operand.U32(v))
+	}
+
+	TEXT("kfBfly5AVX2", NOSPLIT,
+		"func(f0, f1, f2, f3, f4, t1, t2, t3, t4 []cpx, y *[4]float32, blocks int)")
+
+	Doc(
+		"kfBfly5AVX2 runs the radix-5 butterfly over blocks*4 consecutive u, on",
+		"four interleaved complex values at a time.",
+		"",
+		"It is bit-identical to kfBfly5: every multiply and add is the same",
+		"operation on the same pair of operands, in the same order, with no",
+		"fused multiply-add. The twiddles must already be gathered into the",
+		"dense t1..t4 arrays, since the scalar code reads them at strides of",
+		"1, 2, 3 and 4.",
+	)
+
+	p0, p1, p2, p3, p4 := GP64(), GP64(), GP64(), GP64(), GP64()
+	q1, q2, q3, q4 := GP64(), GP64(), GP64(), GP64()
+	Load(Param("f0").Base(), p0)
+	Load(Param("f1").Base(), p1)
+	Load(Param("f2").Base(), p2)
+	Load(Param("f3").Base(), p3)
+	Load(Param("f4").Base(), p4)
+	Load(Param("t1").Base(), q1)
+	Load(Param("t2").Base(), q2)
+	Load(Param("t3").Base(), q3)
+	Load(Param("t4").Base(), q4)
+
+	yp := GP64()
+	Load(Param("y"), yp)
+	yar, yai, ybr, ybi := YMM(), YMM(), YMM(), YMM()
+	VBROADCASTSS(operand.Mem{Base: yp, Disp: 0}, yar)
+	VBROADCASTSS(operand.Mem{Base: yp, Disp: 4}, yai)
+	VBROADCASTSS(operand.Mem{Base: yp, Disp: 8}, ybr)
+	VBROADCASTSS(operand.Mem{Base: yp, Disp: 12}, ybi)
+
+	n := Load(Param("blocks"), GP64())
+	TESTQ(n, n)
+	JZ(operand.LabelRef("done"))
+
+	Label("loop")
+	a0, a1, a2, a3, a4 := YMM(), YMM(), YMM(), YMM(), YMM()
+	VMOVUPS(operand.Mem{Base: p0}, a0)
+	VMOVUPS(operand.Mem{Base: p1}, a1)
+	VMOVUPS(operand.Mem{Base: p2}, a2)
+	VMOVUPS(operand.Mem{Base: p3}, a3)
+	VMOVUPS(operand.Mem{Base: p4}, a4)
+	tv1, tv2, tv3, tv4 := YMM(), YMM(), YMM(), YMM()
+	VMOVUPS(operand.Mem{Base: q1}, tv1)
+	VMOVUPS(operand.Mem{Base: q2}, tv2)
+	VMOVUPS(operand.Mem{Base: q3}, tv3)
+	VMOVUPS(operand.Mem{Base: q4}, tv4)
+
+	s1 := cmulAVX2(a1, tv1)
+	s2 := cmulAVX2(a2, tv2)
+	s3 := cmulAVX2(a3, tv3)
+	s4 := cmulAVX2(a4, tv4)
+
+	s7, s10, s8, s9 := YMM(), YMM(), YMM(), YMM()
+	VADDPS(s4, s1, s7)
+	VSUBPS(s4, s1, s10)
+	VADDPS(s3, s2, s8)
+	VSUBPS(s3, s2, s9)
+
+	// fout[f0] = fout[f0] + (s7 + s8)
+	t, o0 := YMM(), YMM()
+	VADDPS(s8, s7, t)
+	VADDPS(t, a0, o0)
+	VMOVUPS(o0, operand.Mem{Base: p0})
+
+	// s5 = s0 + (s7*ya.r + s8*yb.r); both components use the same scalars.
+	pa, pb, s5 := YMM(), YMM(), YMM()
+	VMULPS(yar, s7, pa)
+	VMULPS(ybr, s8, pb)
+	VADDPS(pb, pa, s5)
+	VADDPS(s5, a0, s5)
+
+	// s6 swaps components: s6.r uses the imaginary parts, s6.i the real ones,
+	// and the scalar code negates the whole imaginary expression.
+	s10s, s9s := YMM(), YMM()
+	VPERMILPS(operand.U8(0xB1), s10, s10s)
+	VPERMILPS(operand.U8(0xB1), s9, s9s)
+	s6 := YMM()
+	VMULPS(yai, s10s, pa)
+	VMULPS(ybi, s9s, pb)
+	VADDPS(pb, pa, s6)
+	VXORPS(signOdd, s6, s6)
+
+	o1, o4 := YMM(), YMM()
+	VSUBPS(s6, s5, o1)
+	VADDPS(s6, s5, o4)
+	VMOVUPS(o1, operand.Mem{Base: p1})
+	VMOVUPS(o4, operand.Mem{Base: p4})
+
+	// s11 = s0 + (s7*yb.r + s8*ya.r)
+	s11 := YMM()
+	VMULPS(ybr, s7, pa)
+	VMULPS(yar, s8, pb)
+	VADDPS(pb, pa, s11)
+	VADDPS(s11, a0, s11)
+
+	// s12.r = s9.i*ya.i - s10.i*yb.i, s12.i = s10.r*yb.i - s9.r*ya.i. The two
+	// lanes subtract in opposite orders, so blend rather than negate: a-b and
+	// -(b-a) differ for signed zero, which silence produces.
+	e, od, s12 := YMM(), YMM(), YMM()
+	VMULPS(yai, s9s, pa)
+	VMULPS(ybi, s10s, pb)
+	VSUBPS(pb, pa, e)  // s9s*ya.i - s10s*yb.i
+	VSUBPS(pa, pb, od) // s10s*yb.i - s9s*ya.i
+	VBLENDPS(operand.U8(0xAA), od, e, s12)
+
+	o2, o3 := YMM(), YMM()
+	VADDPS(s12, s11, o2)
+	VSUBPS(s12, s11, o3)
+	VMOVUPS(o2, operand.Mem{Base: p2})
+	VMOVUPS(o3, operand.Mem{Base: p3})
+
+	for _, r := range []reg.GPVirtual{p0, p1, p2, p3, p4, q1, q2, q3, q4} {
+		ADDQ(operand.Imm(32), r)
+	}
+	DECQ(n)
+	JNZ(operand.LabelRef("loop"))
+
+	Label("done")
+	VZEROUPPER()
+	RET()
+}

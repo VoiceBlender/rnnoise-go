@@ -86,11 +86,11 @@ hardware thread busy.
 
 | rate | µs/frame | ×RT | sessions/CPU |
 |---|---|---|---|
-| 8 kHz | 55.9 | 179 | 1737 |
-| 16 kHz | 65.1 | 154 | 1536 |
-| 32 kHz | 84.3 | 119 | 1250 |
-| 44.1 kHz | 101.8 | 98 | 1046 |
-| 48 kHz | 105.8 | 95 | 1025 |
+| 8 kHz | 55.4 | 181 | 1712 |
+| 16 kHz | 63.7 | 157 | 1484 |
+| 32 kHz | 81.6 | 122 | 1228 |
+| 44.1 kHz | 104.3 | 96 | 961 |
+| 48 kHz | 102.4 | 98 | 1061 |
 | C with AVX2, 48 kHz | 65.2 | 153 | 1440 to 1522 |
 
 At 16 kHz the port is 1.6× cheaper than native C, since a 48 kHz-only denoiser

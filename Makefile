@@ -130,7 +130,7 @@ update-metrics:
 # avo generates the int8 GEMV family only; the other kernels are hand-written
 # in the style of the sibling goamr-nb/goamr-wb modules.
 gen-asm:
-	go run ./tools/avogen -out simd_gemv_amd64.s
+	go run ./tools/avogen -out simd_gen_amd64.s
 	gofmt -l .
 
 # CI guard: regenerating must not change the committed assembly. avo records its
@@ -139,10 +139,10 @@ gen-asm:
 check-asm:
 	@tmp=$$(mktemp -d); \
 	go run ./tools/avogen -out $$tmp/gen.s; \
-	if diff -u <(tail -n +2 simd_gemv_amd64.s) <(tail -n +2 $$tmp/gen.s); then \
+	if diff -u <(tail -n +2 simd_gen_amd64.s) <(tail -n +2 $$tmp/gen.s); then \
 	  echo "generated assembly is up to date"; rm -rf $$tmp; \
 	else \
-	  echo "simd_gemv_amd64.s is stale; run make gen-asm"; rm -rf $$tmp; exit 1; \
+	  echo "simd_gen_amd64.s is stale; run make gen-asm"; rm -rf $$tmp; exit 1; \
 	fi
 
 # Regenerates testdata/upstream_tables_48k.txt from upstream's committed
