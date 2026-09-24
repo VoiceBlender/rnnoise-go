@@ -1,8 +1,8 @@
 // Package model provides RNNoise's trained weights, embedded in the binary.
 //
-// It is a separate module so that importing the engine does not pull in 3.4 MB
-// of weights: a program that loads a model from disk with
-// rnnoise.LoadModelFile pays nothing for this package.
+// It is a separate package so that the weights are linked into a binary only
+// if it imports this package: a program that loads a model from disk with
+// rnnoise.LoadModelFile does not carry them.
 //
 // The weights are upstream's, repacked by tools/blobgen. Their provenance,
 // pinned hash and licence are recorded in LICENSE.weights.

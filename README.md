@@ -11,12 +11,11 @@ The C original is fixed at 48 kHz. This runs natively at any rate from 8 kHz up.
 
 ```
 go get github.com/VoiceBlender/rnnoise-go
-go get github.com/VoiceBlender/rnnoise-go/model
 ```
 
-`model/` is a separate module, so the 3.4 MB weight blob is fetched only if you
-import it. Load weights from disk with `rnnoise.LoadModelFile` instead and you
-do not need it.
+The 3.4 MB weight blob lives in its own package, so it is linked into a binary
+only if that binary imports `rnnoise-go/model`. Load weights from disk with
+`rnnoise.LoadModelFile` instead and you do not carry them.
 
 ## Usage
 
@@ -39,6 +38,18 @@ several feature offsets are calibrated against that absolute magnitude.
 
 Allocation-free after construction. A `Model` is read-only and backs any number
 of Denoisers concurrently; each stream needs its own `Denoiser`.
+
+## Command line
+
+```
+go install github.com/VoiceBlender/rnnoise-go/cmd/rnnoise@latest
+rnnoise noisy.wav clean.wav
+```
+
+Takes 16-bit PCM WAV at any rate from 8 kHz up, denoises each channel
+independently, and compensates the 20 ms delay so the output is the same length
+as the input and aligned with it. `-model` reads weights from a file instead of
+the embedded ones; `-q` suppresses the summary.
 
 ## Sample rates
 

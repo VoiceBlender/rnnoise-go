@@ -3,7 +3,6 @@ go 1.26.0
 use (
 	.
 	./ctest
-	./model
 	./tools/avogen
 	./tools/blobgen
 )
