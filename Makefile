@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: test bench vet fmt model verify-model tables-fixture ctest-build diff-vs-c golden nativerate-report update-metrics bench-capacity update-capacity bench-c bench-report gen-asm check-asm test-arm64 all
+.PHONY: tools test bench vet fmt model verify-model tables-fixture ctest-build diff-vs-c golden nativerate-report update-metrics bench-capacity update-capacity bench-c bench-report gen-asm check-asm test-arm64 all
 
 MODEL_SHA  := $(shell cat MODEL_VERSION)
 MODEL_URL  := https://media.xiph.org/rnnoise/models/rnnoise_data-$(MODEL_SHA).tar.gz
@@ -11,6 +11,31 @@ UPSTREAM_REV := 70f1d256acd4b34a572f999a05c87bf00b67730d
 VENDOR := ctest/c/vendor
 
 all: test
+
+# --- Toolchain ---------------------------------------------------------------
+# Nothing here is `go install`-able: the generators are workspace modules run
+# with `go run`, and everything else is a system package. So this warms the
+# module cache -- avo's tree is what makes gen-asm fail offline -- and reports
+# which system tools are missing and what they gate.
+tools:
+	@for m in . ctest tools/avogen tools/blobgen; do \
+	  (cd $$m && go mod download) || exit 1; \
+	done
+	@miss=0; for t in \
+	  "git|C reference checkout" \
+	  "curl|model tarball download" \
+	  "tar|model tarball" \
+	  "sha256sum|model and blob verification" \
+	  "gcc|C reference builds: ctest-build, diff-vs-c, golden, bench-c" \
+	  "docker|test-arm64, plus one-time: docker run --privileged --rm tonistiigi/binfmt --install arm64"; \
+	do \
+	  bin=$${t%%|*}; why=$${t#*|}; \
+	  if command -v $$bin >/dev/null 2>&1; then printf '  %-9s ok\n' "$$bin"; \
+	  else printf '  %-9s MISSING -- %s\n' "$$bin" "$$why"; miss=1; fi; \
+	done; \
+	if [ $$miss -ne 0 ]; then \
+	  echo; echo "install the missing packages with the distro package manager"; \
+	fi
 
 # Unit tests (pure Go, no C toolchain, no model download).
 test:
