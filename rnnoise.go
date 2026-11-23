@@ -199,7 +199,9 @@ func (d *Denoiser) Process(out, in []float32) (float32, error) {
 //
 // The conversion back to int16 truncates rather than rounds, matching
 // upstream's examples/rnnoise_demo.c, so a round trip through this function
-// reproduces the reference tool's output.
+// reproduces the reference tool's output. Output beyond int16 range, which
+// near full-scale input can produce, is clipped; converting it unclamped wraps
+// it to the opposite sign, a full-scale click.
 func (d *Denoiser) ProcessInt16(out, in []int16) (float32, error) {
 	n := d.c.frame
 	if len(in) != n || len(out) != n {
@@ -211,7 +213,7 @@ func (d *Denoiser) ProcessInt16(out, in []int16) (float32, error) {
 	}
 	vad := d.processFrame(d.pcm, d.pcm)
 	for i, v := range d.pcm {
-		out[i] = int16(v)
+		out[i] = int16(max(-32768, min(32767, v)))
 	}
 	return vad, nil
 }
