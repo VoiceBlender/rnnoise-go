@@ -425,3 +425,50 @@ func TestDelayMatchesMeasured(t *testing.T) {
 		}
 	}
 }
+
+// TestProcessInt16ClipsOvershoot feeds full-scale speech, which the denoiser
+// overshoots past int16 range, and checks those samples clip rather than wrap.
+func TestProcessInt16ClipsOvershoot(t *testing.T) {
+	m := testModel(t)
+	for _, rate := range testRates {
+		df, _ := New(Options{SampleRate: rate, Model: m})
+		di, _ := New(Options{SampleRate: rate, Model: m})
+		n := df.FrameSize()
+		sig := speechLike(rate, 100*n, 1)
+		var peak float32
+		for _, v := range sig {
+			peak = max(peak, v, -v)
+		}
+		in := make([]int16, len(sig))
+		for i, v := range sig {
+			in[i] = int16(v / peak * 32767)
+		}
+
+		fin := make([]float32, n)
+		fout := make([]float32, n)
+		iout := make([]int16, n)
+		over := 0
+		for off := 0; off+n <= len(in); off += n {
+			for i, v := range in[off : off+n] {
+				fin[i] = float32(v)
+			}
+			if _, err := df.Process(fout, fin); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := di.ProcessInt16(iout, in[off:off+n]); err != nil {
+				t.Fatal(err)
+			}
+			for i, v := range fout {
+				if v > 32767 || v < -32768 {
+					over++
+				}
+				if want := int16(max(-32768, min(32767, v))); iout[i] != want {
+					t.Fatalf("rate %d sample %d: %d, want %d (float %v)", rate, off+i, iout[i], want, v)
+				}
+			}
+		}
+		if over == 0 {
+			t.Errorf("rate %d: no sample beyond int16 range; the test no longer exercises clipping", rate)
+		}
+	}
+}
